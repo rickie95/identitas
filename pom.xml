@@ -13,9 +13,38 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>identitas</name>
 	<description>Open source identity provider</description>
+	
 	<properties>
 		<java.version>11</java.version>
+		<java.version>11</java.version>
+		<jacoco.version>0.8.7</jacoco.version>
+		<jacoco.min.coverage>1.0</jacoco.min.coverage>
+		<pitest.version>1.6.9</pitest.version>
+		<skip.integration-tests>false</skip.integration-tests>
 	</properties>
+
+	<profiles>
+		<profile>
+			<id>mutation-testing</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-maven</artifactId>
+						<executions>
+							<execution>
+								<phase>verify</phase>
+								<goals>
+									<goal>mutationCoverage</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -28,18 +57,205 @@
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>0.11.2</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>0.11.2</version>
+			<scope>runtime</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId> <!-- or jjwt-gson if Gson is preferred -->
+			<version>0.11.2</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- TEST DEPENDENCIES -->
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>io.rest-assured</groupId>
+			<artifactId>spring-mock-mvc</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<version>3.20.2</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.junit.vintage</groupId>
+			<artifactId>junit-vintage-engine</artifactId>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+				<groupId>org.hamcrest</groupId>
+				<artifactId>hamcrest-core</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+
 	</dependencies>
 
 	<build>
+	<pluginManagement>
 		<plugins>
+			<!-- Jacoco -->
 			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco.version}</version>
+				<configuration>
+					<excludes>
+						<exclude>**/IdentitasApplication.*</exclude>
+						<exclude>**/model/*</exclude>
+						<exclude>**/exceptions/*</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+							<goal>report</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>jacoco-check</id>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<rule>
+									<limits>
+										<limit>
+											<counter>INSTRUCTION</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>${jacoco.min.coverage}</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- Build Helper -->
+			
+			<!-- PiTest -->
+			<plugin>
+				<groupId>org.pitest</groupId>
+				<artifactId>pitest-maven</artifactId>
+				<version>${pitest.version}</version>
+				<configuration>
+					<targetClasses>
+						<param>it.riccardomalavolti.identitas.*</param>
+					</targetClasses>
+					<targetTests>
+						<param>it.riccardomalavolti.identitas.*</param>
+					</targetTests>
+					<excludedClasses>
+						<param>it.riccardomalavolti.identitas.model.*</param>
+						<param>it.riccardomalavolti.identitas.exceptions.*</param>
+					</excludedClasses>
+					<mutators>
+						<mutator>DEFAULTS</mutator>
+					</mutators>
+					<mutationThreshold>80</mutationThreshold>
+				</configuration>
 			</plugin>
 		</plugins>
-	</build>
+	</pluginManagement>
+
+	<plugins>
+		<plugin>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-maven-plugin</artifactId>
+		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-surefire-plugin</artifactId>
+			<configuration>
+				<includes>
+					<include>**/*Test.java</include>
+				</includes>
+			</configuration>
+		</plugin>
+		<plugin>
+			<groupId>org.codehaus.mojo</groupId>
+			<artifactId>build-helper-maven-plugin</artifactId>
+			<executions>
+			  <execution>
+				<id>add-test-source</id>
+				<phase>process-resources</phase>
+				<goals>
+				  <goal>add-test-source</goal>
+				</goals>
+				<configuration>
+				  <sources>
+					<source>src/it/java</source>
+					<source>src/e2e/java</source>
+				  </sources>
+				</configuration>
+			  </execution>
+			</executions>
+		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-failsafe-plugin</artifactId>
+			<executions>
+				<execution>
+				<configuration>
+					<skipTests>${skip.integration-tests}</skipTests>
+					<includes>
+					<include>**/*ApplicationTests.java</include>
+					<include>**/*IT.java</include>
+					</includes>
+				</configuration>
+				<goals>
+					<goal>integration-test</goal>
+					<goal>verify</goal>
+				</goals>
+				</execution>
+			</executions>
+		</plugin>
+		<plugin>
+			<groupId>org.jacoco</groupId>
+			<artifactId>jacoco-maven-plugin</artifactId>
+		</plugin>
+	</plugins>
+</build>
+
 
 </project>
