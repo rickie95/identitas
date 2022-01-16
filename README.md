@@ -1,4 +1,5 @@
 # Identitas
+[![CI for Identitas](https://github.com/rickie95/identitas/actions/workflows/maven-publish.yml/badge.svg?branch=main)](https://github.com/rickie95/identitas/actions/workflows/maven-publish.yml)
 
 ## A bad copy of OAuth
 
